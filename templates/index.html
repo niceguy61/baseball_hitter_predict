@@ -6,12 +6,8 @@
     <title>선수 스탯 시각화</title>
     <!-- Select2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    <style>
-        /* Select2 스타일 조정 */
-        .select2-container {
-            width: 100% !important;
-        }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <h1>선수 스탯 시각화</h1>
@@ -26,7 +22,7 @@
     </form>
     {% if player_info %}
         <h2>{{ selected_player }}의 2024년 데이터</h2>
-        <table border="1">
+        <table>
             <tr>
                 <th>나이</th>
                 <th>팀</th>
