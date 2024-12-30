@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Container, Grid, Card, CardContent, Typography, TextField, Autocomplete, CardMedia, MenuItem, Select } from '@mui/material';
+import { CircularProgress, Container, Grid, Card, CardContent, Typography, TextField, Autocomplete, CardMedia } from '@mui/material';
 import ReactEcharts from 'echarts-for-react';
 import themes from './themes';
 import { ThemeProvider, CssBaseline } from '@mui/material';
@@ -15,7 +15,7 @@ function App() {
   const [playerLoading, setPlayerLoading] = useState(false);
   const [playerInfo, setPlayerInfo] = useState(null);
   const [chartData, setChartData] = useState({});
-  const [selectedMetric, setSelectedMetric] = useState('');
+  const [selectedMetrics, setSelectedMetrics] = useState([]);
 
   const batterHeaders = [
     "Year", "Team", "Age", "Pos.", "oWAR", "dWAR", "G", "PA", "ePA", "AB",
@@ -81,14 +81,29 @@ function App() {
     }
   };
 
-  const handleMetricChange = (event) => {
-    const metric = event.target.value;
-    setSelectedMetric(metric);
+  const handleMetricChange = (event, value) => {
+    setSelectedMetrics(value);
     const filteredStats = playerStats.filter(stat => stat.Year !== '통산');
     const labels = filteredStats.map(stat => stat.Year);
-    const dataValues = filteredStats.map(stat => Number(stat[metric]) || 0);
+
+    const series = value.map(metric => ({
+      name: metric,
+      type: 'line',
+      smooth: true,
+      data: filteredStats.map(stat => Number(stat[metric]) || 0),
+    }));
 
     setChartData({
+      tooltip: {
+        trigger: 'axis', // 마우스를 올렸을 때 툴팁 표시
+        formatter: function (params) {
+          let tooltipText = `Year: ${params[0].name}<br>`; // 연도 정보
+          params.forEach((item) => {
+            tooltipText += `${item.seriesName}: ${item.value}<br>`; // 지표와 값
+          });
+          return tooltipText;
+        },
+      },
       xAxis: {
         type: 'category',
         data: labels,
@@ -96,14 +111,7 @@ function App() {
       yAxis: {
         type: 'value',
       },
-      series: [
-        {
-          data: dataValues,
-          type: 'line',
-          smooth: true,
-          name: metric,
-        },
-      ],
+      series: series,
     });
   };
 
@@ -172,19 +180,19 @@ function App() {
                           </tbody>
                         </table>
                       </div>
-                      <Select
-                        fullWidth
-                        value={selectedMetric}
+                      <Autocomplete
+                        multiple
+                        options={batterHeaders.filter(header => header !== 'Year')}
+                        value={selectedMetrics}
                         onChange={handleMetricChange}
-                        displayEmpty
-                      >
-                        <MenuItem value="">
-                          지표 선택
-                        </MenuItem>
-                        {batterHeaders.filter(header => header !== 'Year').map(header => (
-                          <MenuItem key={header} value={header}>{header}</MenuItem>
-                        ))}
-                      </Select>
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="지표 선택"
+                            placeholder="지표를 검색하세요"
+                          />
+                        )}
+                      />
                       {chartData.series && (
                         <ReactEcharts option={chartData} />
                       )}
