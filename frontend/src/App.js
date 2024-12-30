@@ -8,7 +8,10 @@ function App() {
 
   // 선수 목록 불러오기
   useEffect(() => {
-    fetch('https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBaseballPlayerList')
+    fetch('https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBaseballPlayerList', {
+        method: 'GET',
+        mode: 'cors'
+      })
       .then(response => response.json())
       .then(data => setPlayers(data))
       .catch(error => console.error('선수 목록 불러오기 실패:', error));
@@ -17,7 +20,10 @@ function App() {
   // 선수 선택 시 상세 데이터 불러오기
   const handlePlayerSelect = (playerId) => {
     setSelectedPlayer(playerId);
-    fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBatterDetail/${playerId}`)
+    fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBatterDetail/${playerId}`, {
+        method: 'GET',
+        mode: 'cors'
+      })
       .then(response => response.json())
       .then(data => setPlayerStats(data))
       .catch(error => console.error('선수 성적 불러오기 실패:', error));
