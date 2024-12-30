@@ -1,85 +1,117 @@
 import React, { useState, useEffect } from 'react';
+import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem } from '@mui/material';
 import './App.css';
 
 function App() {
   const [players, setPlayers] = useState([]);
   const [playerStats, setPlayerStats] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [playerLoading, setPlayerLoading] = useState(false);
 
-  // 선수 목록 불러오기
   useEffect(() => {
+    setLoading(true);
     fetch('https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBaseballPlayerList', {
         method: 'GET',
         mode: 'cors'
       })
       .then(response => response.json())
-      .then(data => setPlayers(data))
-      .catch(error => console.error('선수 목록 불러오기 실패:', error));
+      .then(data => {
+        setPlayers(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('선수 목록 불러오기 실패:', error);
+        setLoading(false);
+      });
   }, []);
 
-  // 선수 선택 시 상세 데이터 불러오기
   const handlePlayerSelect = (playerId) => {
     setSelectedPlayer(playerId);
+    setPlayerLoading(true);
     fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBatterDetail/${playerId}`, {
         method: 'GET',
         mode: 'cors'
       })
       .then(response => response.json())
-      .then(data => setPlayerStats(data))
-      .catch(error => console.error('선수 성적 불러오기 실패:', error));
+      .then(data => {
+        setPlayerStats(data);
+        setPlayerLoading(false);
+      })
+      .catch(error => {
+        console.error('선수 성적 불러오기 실패:', error);
+        setPlayerLoading(false);
+      });
   };
 
   return (
-    <div className="App">
+    <Container>
       <div className="header">
-        <h1>야구 선수 정보</h1>
+        <Typography variant="h3" gutterBottom>
+          야구 선수 정보
+        </Typography>
       </div>
 
-      <div className="content">
-        <label>선수를 선택하세요: </label>
-        <select
-          onChange={(e) => handlePlayerSelect(e.target.value)}
-          value={selectedPlayer}
-        >
-          <option value="">--선택--</option>
-          {players.map(player => (
-            <option key={player.id} value={player.id}>
-              {player.name} ({player.team})
-            </option>
-          ))}
-        </select>
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="h6">선수를 선택하세요:</Typography>
+            <Select
+              fullWidth
+              value={selectedPlayer}
+              onChange={(e) => handlePlayerSelect(e.target.value)}
+            >
+              <MenuItem value="">--선택--</MenuItem>
+              {players.map(player => (
+                <MenuItem key={player.id} value={player.id}>
+                  {player.name} ({player.team})
+                </MenuItem>
+              ))}
+            </Select>
+          </Grid>
 
-        {selectedPlayer && (
-          <div className="player-card">
-            <h2>
-              {players.find(p => p.id === selectedPlayer)?.name}
-            </h2>
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>연도</th>
-                  <th>타율(AVG)</th>
-                  <th>홈런(HR)</th>
-                  <th>타점(RBI)</th>
-                  <th>OPS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {playerStats.map((stat, index) => (
-                  <tr key={index}>
-                    <td>{stat.Year}</td>
-                    <td>{stat.AVG}</td>
-                    <td>{stat.HR}</td>
-                    <td>{stat.RBI}</td>
-                    <td>{stat.OPS}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+          {selectedPlayer && (
+            <Grid item xs={12} md={12}>
+              {playerLoading ? (
+                <CircularProgress />
+              ) : (
+                <Card>
+                  <CardContent>
+                    <Typography variant="h5">
+                      {players.find(p => p.id === selectedPlayer)?.name}
+                    </Typography>
+                    <table className="stats-table">
+                      <thead>
+                        <tr>
+                          <th>연도</th>
+                          <th>타율(AVG)</th>
+                          <th>홈런(HR)</th>
+                          <th>타점(RBI)</th>
+                          <th>OPS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {playerStats.map((stat, index) => (
+                          <tr key={index}>
+                            <td>{stat.Year}</td>
+                            <td>{stat.AVG}</td>
+                            <td>{stat.HR}</td>
+                            <td>{stat.RBI}</td>
+                            <td>{stat.OPS}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
+            </Grid>
+          )}
+        </Grid>
+      )}
+    </Container>
   );
 }
 
