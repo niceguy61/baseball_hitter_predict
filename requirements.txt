@@ -2,8 +2,8 @@ pandas
 numpy
 scikit-learn
 tensorflow
-kaggle
 keras
 matplotlib
-flask
 koreanize-matplotlib
+boto3
+bs4
