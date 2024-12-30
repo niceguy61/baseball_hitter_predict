@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ant-design/colors": "^7.1.0",
+    "@ant-design/icons": "^5.5.2",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^6.3.0",
     "axios": "^1.7.9",
     "cra-template": "1.2.0",
     "react": "^19.0.0",

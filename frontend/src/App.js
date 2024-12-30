@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem, CardMedia, Box } from '@mui/material';
+import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem, CardMedia } from '@mui/material';
 import themes from './themes';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import './App.css';
+import pitcherPlaceholder from './assets/images/users/pitcher_black.png';
+import batterPlaceholder from './assets/images/users/batter_black.png';
 
 function App() {
   const [players, setPlayers] = useState([]);
@@ -67,7 +69,14 @@ function App() {
           setPlayerLoading(false);
         });
       })
-      .catch(error => console.error('선수 정보 불러오기 실패:', error));
+      .catch(error => {
+        console.error('선수 정보 불러오기 실패:', error);
+        setPlayerLoading(false);
+      });
+  };
+
+  const getPlaceholderImage = (position) => {
+    return position === 'P' ? pitcherPlaceholder : batterPlaceholder;
   };
 
   return (
@@ -109,36 +118,38 @@ function App() {
                     <CardMedia
                       component="img"
                       height="300"
-                      image={playerInfo.image_url}
-                      alt={playerInfo.name}
+                      image={playerInfo.image_url || getPlaceholderImage(playerInfo.position)}
+                      alt={playerInfo.name || 'Placeholder Image'}
                     />
                     <CardContent>
                       <Typography variant="h5">
-                        {playerInfo.name} ({playerInfo.team})
+                        {playerInfo.name || '선수 정보 없음'} ({playerInfo.team || '팀 정보 없음'})
                       </Typography>
-                      <Typography>포지션: {playerInfo.position}</Typography>
-                      <Typography>경력: {playerInfo.career}</Typography>
-                      <Typography>드래프트 정보: {playerInfo.draft_info}</Typography>
-                      <Typography>학교: {playerInfo.school}</Typography>
-                      <Typography>타격/투구: {playerInfo.bats}</Typography>
-                      <table className="stats-table">
-                        <thead>
-                          <tr>
-                            {(playerInfo.position === 'P' ? pitcherHeaders : batterHeaders).map((header, idx) => (
-                              <th key={idx}>{header}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {playerStats.map((stat, index) => (
-                            <tr key={index}>
+                      <Typography>포지션: {playerInfo.position || '정보 없음'}</Typography>
+                      <Typography>경력: {playerInfo.career || '정보 없음'}</Typography>
+                      <Typography>드래프트 정보: {playerInfo.draft_info || '정보 없음'}</Typography>
+                      <Typography>학교: {playerInfo.school || '정보 없음'}</Typography>
+                      <Typography>타격/투구: {playerInfo.bats || '정보 없음'}</Typography>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="stats-table">
+                          <thead>
+                            <tr>
                               {(playerInfo.position === 'P' ? pitcherHeaders : batterHeaders).map((header, idx) => (
-                                <td key={idx}>{stat[header]}</td>
+                                <th key={idx}>{header}</th>
                               ))}
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {playerStats.map((stat, index) => (
+                              <tr key={index}>
+                                {(playerInfo.position === 'P' ? pitcherHeaders : batterHeaders).map((header, idx) => (
+                                  <td key={idx}>{stat[header] || 'N/A'}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
