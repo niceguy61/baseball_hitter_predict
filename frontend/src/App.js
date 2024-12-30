@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem, CardMedia } from '@mui/material';
+import { CircularProgress, Container, Grid, Card, CardContent, Typography, TextField, Autocomplete, CardMedia, MenuItem, Select } from '@mui/material';
+import ReactEcharts from 'echarts-for-react';
 import themes from './themes';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import './App.css';
-import pitcherPlaceholder from './assets/images/users/pitcher_black.png';
-import batterPlaceholder from './assets/images/users/batter_black.png';
+import pitcherPlaceholder from './assets/pitcher_black.png';
+import batterPlaceholder from './assets/batter_black.png';
 
 function App() {
   const [players, setPlayers] = useState([]);
@@ -13,17 +14,18 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
   const [playerInfo, setPlayerInfo] = useState(null);
+  const [chartData, setChartData] = useState({});
+  const [selectedMetric, setSelectedMetric] = useState('');
+
   const batterHeaders = [
     "Year", "Team", "Age", "Pos.", "oWAR", "dWAR", "G", "PA", "ePA", "AB",
     "R", "H", "2B", "3B", "HR", "TB", "RBI", "SB", "CS", "BB", "HP", "IB",
     "SO", "GDP", "SH", "SF", "AVG", "OBP", "SLG", "OPS", "R/ePA", "wRC+", "WAR"
   ];
-  const pitcherHeaders = [
-    "Year", "Team", "Age", "Pos.", "G", "GS", "GR", "GF", "CG", "SHO",
-    "W", "L", "S", "HD", "IP", "ER", "R", "rRA", "TBF", "H", "2B", "3B",
-    "HR", "BB", "HP", "IB", "SO", "ROE", "BK", "WP", "ERA", "RA9", "rRA9",
-    "FIP", "WHIP", "WAR"
-  ];
+
+  const getPlaceholderImage = (position) => {
+    return position === 'P' ? pitcherPlaceholder : batterPlaceholder;
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -42,41 +44,67 @@ function App() {
       });
   }, []);
 
-  const handlePlayerSelect = (playerId) => {
-    setSelectedPlayer(playerId);
-    setPlayerLoading(true);
-    fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetPlayerInfo/${playerId}`, {
-        method: 'GET',
-        mode: 'cors'
-      })
-      .then(response => response.json())
-      .then(info => {
-        setPlayerInfo(info);
-        const detailUrl = info.position === 'P'
-          ? `https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetPitcherDetail/${playerId}`
-          : `https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBatterDetail/${playerId}`;
-        fetch(detailUrl, {
+  const handlePlayerSelect = (event, value) => {
+    setSelectedPlayer(value?.id || '');
+    if (value) {
+      setPlayerLoading(true);
+      fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetPlayerInfo/${value.id}`, {
           method: 'GET',
           mode: 'cors'
         })
         .then(response => response.json())
-        .then(data => {
-          setPlayerStats(data);
-          setPlayerLoading(false);
+        .then(info => {
+          setPlayerInfo(info);
+          info.image_url = info.image_url || getPlaceholderImage(info.position);
+          const detailUrl = info.position === 'P'
+            ? `https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetPitcherDetail/${value.id}`
+            : `https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetBatterDetail/${value.id}`;
+          fetch(detailUrl, {
+            method: 'GET',
+            mode: 'cors'
+          })
+          .then(response => response.json())
+          .then(data => {
+            const filteredData = data.filter(stat => stat.Team !== '통산');
+            setPlayerStats(filteredData);
+            setPlayerLoading(false);
+          })
+          .catch(error => {
+            console.error('선수 성적 불러오기 실패:', error);
+            setPlayerLoading(false);
+          });
         })
         .catch(error => {
-          console.error('선수 성적 불러오기 실패:', error);
+          console.error('선수 정보 불러오기 실패:', error);
           setPlayerLoading(false);
         });
-      })
-      .catch(error => {
-        console.error('선수 정보 불러오기 실패:', error);
-        setPlayerLoading(false);
-      });
+    }
   };
 
-  const getPlaceholderImage = (position) => {
-    return position === 'P' ? pitcherPlaceholder : batterPlaceholder;
+  const handleMetricChange = (event) => {
+    const metric = event.target.value;
+    setSelectedMetric(metric);
+    const filteredStats = playerStats.filter(stat => stat.Year !== '통산');
+    const labels = filteredStats.map(stat => stat.Year);
+    const dataValues = filteredStats.map(stat => Number(stat[metric]) || 0);
+
+    setChartData({
+      xAxis: {
+        type: 'category',
+        data: labels,
+      },
+      yAxis: {
+        type: 'value',
+      },
+      series: [
+        {
+          data: dataValues,
+          type: 'line',
+          smooth: true,
+          name: metric,
+        },
+      ],
+    });
   };
 
   return (
@@ -95,18 +123,12 @@ function App() {
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Typography variant="h6">선수를 선택하세요:</Typography>
-              <Select
-                fullWidth
-                value={selectedPlayer}
-                onChange={(e) => handlePlayerSelect(e.target.value)}
-              >
-                <MenuItem value="">--선택--</MenuItem>
-                {players.map(player => (
-                  <MenuItem key={player.id} value={player.id}>
-                    {player.name} ({player.team})
-                  </MenuItem>
-                ))}
-              </Select>
+              <Autocomplete
+                options={players}
+                getOptionLabel={(option) => `${option.name} (${option.team})`}
+                onChange={handlePlayerSelect}
+                renderInput={(params) => <TextField {...params} label="선수 검색" fullWidth />}
+              />
             </Grid>
 
             {selectedPlayer && playerInfo && (
@@ -118,7 +140,7 @@ function App() {
                     <CardMedia
                       component="img"
                       height="300"
-                      image={playerInfo.image_url || getPlaceholderImage(playerInfo.position)}
+                      image={playerInfo.image_url}
                       alt={playerInfo.name || 'Placeholder Image'}
                     />
                     <CardContent>
@@ -134,7 +156,7 @@ function App() {
                         <table className="stats-table">
                           <thead>
                             <tr>
-                              {(playerInfo.position === 'P' ? pitcherHeaders : batterHeaders).map((header, idx) => (
+                              {batterHeaders.map((header, idx) => (
                                 <th key={idx}>{header}</th>
                               ))}
                             </tr>
@@ -142,7 +164,7 @@ function App() {
                           <tbody>
                             {playerStats.map((stat, index) => (
                               <tr key={index}>
-                                {(playerInfo.position === 'P' ? pitcherHeaders : batterHeaders).map((header, idx) => (
+                                {batterHeaders.map((header, idx) => (
                                   <td key={idx}>{stat[header] || 'N/A'}</td>
                                 ))}
                               </tr>
@@ -150,6 +172,22 @@ function App() {
                           </tbody>
                         </table>
                       </div>
+                      <Select
+                        fullWidth
+                        value={selectedMetric}
+                        onChange={handleMetricChange}
+                        displayEmpty
+                      >
+                        <MenuItem value="">
+                          지표 선택
+                        </MenuItem>
+                        {batterHeaders.filter(header => header !== 'Year').map(header => (
+                          <MenuItem key={header} value={header}>{header}</MenuItem>
+                        ))}
+                      </Select>
+                      {chartData.series && (
+                        <ReactEcharts option={chartData} />
+                      )}
                     </CardContent>
                   </Card>
                 )}
