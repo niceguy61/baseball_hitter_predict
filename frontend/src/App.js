@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem } from '@mui/material';
+import { CircularProgress, Container, Grid, Card, CardContent, Typography, Select, MenuItem, CardMedia } from '@mui/material';
 import './App.css';
 
 function App() {
@@ -8,6 +8,7 @@ function App() {
   const [selectedPlayer, setSelectedPlayer] = useState('');
   const [loading, setLoading] = useState(false);
   const [playerLoading, setPlayerLoading] = useState(false);
+  const [playerInfo, setPlayerInfo] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -42,6 +43,16 @@ function App() {
         console.error('선수 성적 불러오기 실패:', error);
         setPlayerLoading(false);
       });
+
+    fetch(`https://a342y8dz2i.execute-api.ap-northeast-2.amazonaws.com/prod/GetPlayerInfo/${playerId}`, {
+        method: 'GET',
+        mode: 'cors'
+      })
+      .then(response => response.json())
+      .then(data => {
+        setPlayerInfo(data);
+      })
+      .catch(error => console.error('선수 정보 불러오기 실패:', error));
   };
 
   return (
@@ -72,15 +83,30 @@ function App() {
             </Select>
           </Grid>
 
-          {selectedPlayer && (
+          {selectedPlayer && playerInfo && (
             <Grid item xs={12} md={12}>
               {playerLoading ? (
                 <CircularProgress />
               ) : (
                 <Card>
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={playerInfo.image_url}
+                    alt={playerInfo.name}
+                  />
                   <CardContent>
                     <Typography variant="h5">
-                      {players.find(p => p.id === selectedPlayer)?.name}
+                      {playerInfo.name} ({playerInfo.team})
+                    </Typography>
+                    <Typography variant="body1">
+                      포지션: {playerInfo.position}
+                    </Typography>
+                    <Typography variant="body2">
+                      경력: {playerInfo.career}
+                    </Typography>
+                    <Typography variant="body2">
+                      드래프트 정보: {playerInfo.draft_info}
                     </Typography>
                     <table className="stats-table">
                       <thead>
